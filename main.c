@@ -5,6 +5,7 @@
 #include <math.h>
 #include <errno.h>
 #include <stdio.h>
+#include <getopt.h>
 #include <stdlib.h>
 #include <stdint.h>
 
@@ -36,7 +37,7 @@ static uint16_t process_int_arg(const char *arg) {
 	return strtoul(arg, &end, 10);
 }
 
-static inline swap_ethernet_batch(struct rte_mbuf **pkts, uint16_t n) {
+static inline void swap_ethernet_batch(struct rte_mbuf **pkts, uint16_t n) {
     for(uint16_t i = 0; i < n; i++) {
         struct rte_mbuf *pkt = pkts[i];
 
@@ -53,9 +54,9 @@ static int lcore_echo_fn(void *arg) {
     uint16_t qid = *((uint16_t*) arg);
     struct rte_mbuf *pkts[BURST_SIZE];
 
-    while(!quit_rx) {
+    while(1) {
         // retrieve the packets from the NIC
-        nb_rx = rte_eth_rx_burst(portid, qid, pkts, BURST_SIZE);
+        uint16_t nb_rx = rte_eth_rx_burst(portid, qid, pkts, BURST_SIZE);
 
         // swap the ethernet
         swap_ethernet_batch(pkts, nb_rx);
@@ -71,7 +72,7 @@ static inline int init_dpdk(uint16_t nr_queues) {
     // allocate the packet pool
 	char s[64];
 	snprintf(s, sizeof(s), "mbuf_pool");
-	pktmbuf_pool = rte_pktmbuf_pool_create(s, PKTMBUF_POOL_ELEMENTS, MEMPOOL_CACHE_SIZE, 0,	RTE_MBUF_DEFAULT_BUF_SIZE, rte_socket_id());
+	struct rte_mempool *pktmbuf_pool = rte_pktmbuf_pool_create(s, PKTMBUF_POOL_ELEMENTS, MEMPOOL_CACHE_SIZE, 0,	RTE_MBUF_DEFAULT_BUF_SIZE, rte_socket_id());
 
 	if(pktmbuf_pool == NULL) {
 		rte_exit(EXIT_FAILURE, "Cannot init mbuf pool on socket %d\n", rte_socket_id());
@@ -88,7 +89,7 @@ static inline int init_dpdk(uint16_t nr_queues) {
 	// get default port_conf
 	struct rte_eth_conf port_conf = {
 		.rxmode = {
-			.mq_mode = nb_rx_queue > 1 ? RTE_ETH_MQ_RX_RSS : RTE_ETH_MQ_RX_NONE,
+			.mq_mode = nb_rx_queues > 1 ? RTE_ETH_MQ_RX_RSS : RTE_ETH_MQ_RX_NONE,
 			.max_lro_pkt_size = RTE_ETHER_MAX_LEN,
 			.offloads = RTE_ETH_RX_OFFLOAD_CHECKSUM,
 		},
@@ -105,7 +106,8 @@ static inline int init_dpdk(uint16_t nr_queues) {
 	};
 
 	// configure the NIC
-	int retval = rte_eth_dev_configure(portid, nb_rx_queue, nb_tx_queue, &port_conf);
+    uint32_t portid = 0;
+	int retval = rte_eth_dev_configure(portid, nb_rx_queue, nb_tx_queues, &port_conf);
 	if(retval != 0) {
 		return retval;
 	}
@@ -117,15 +119,15 @@ static inline int init_dpdk(uint16_t nr_queues) {
 	}
 
 	// setup the RX queues
-	for(int q = 0; q < nb_rx_queue; q++) {
-		retval = rte_eth_rx_queue_setup(portid, q, nb_rxd, rte_eth_dev_socket_id(portid), NULL, mbuf_pool);
+	for(int q = 0; q < nb_rx_queues; q++) {
+		retval = rte_eth_rx_queue_setup(portid, q, nb_rxd, rte_eth_dev_socket_id(portid), NULL, pktmbuf_pool);
 		if (retval < 0) {
 			return retval;
 		}
 	}
 
 	// setup the TX queues
-	for(int q = 0; q < nb_tx_queue; q++) {
+	for(int q = 0; q < nb_tx_queues; q++) {
 		retval = rte_eth_tx_queue_setup(portid, q, nb_txd, rte_eth_dev_socket_id(portid), NULL);
 		if (retval < 0) {
 			return retval;
