@@ -107,7 +107,7 @@ static inline int init_dpdk(uint16_t nr_queues) {
 
 	// configure the NIC
     uint32_t portid = 0;
-	int retval = rte_eth_dev_configure(portid, nb_rx_queue, nb_tx_queues, &port_conf);
+	int retval = rte_eth_dev_configure(portid, nb_rx_queues, nb_tx_queues, &port_conf);
 	if(retval != 0) {
 		return retval;
 	}
@@ -156,17 +156,12 @@ int app_parse_args(int argc, char **argv) {
 			break;
 
 		default:
-			usage(prgname);
 			rte_exit(EXIT_FAILURE, "Invalid arguments.\n");
 		}
 	}
 
 	if(optind >= 0) {
 		argv[optind - 1] = prgname;
-	}
-
-	if(nr_flows < nr_queues) {
-		rte_exit(EXIT_FAILURE, "The number of flows should be bigger than the number of queues.\n");
 	}
 
 	ret = optind-1;
@@ -189,7 +184,7 @@ int main(int argc, char **argv) {
 	}
 
     uint32_t id_lcore = rte_lcore_id();	
-	for(uint16_t q = 0; i < nr_queues; i++) {
+	for(uint16_t q = 0; q < nr_cores; q++) {
 		id_lcore = rte_get_next_lcore(id_lcore, 1, 1);
 		rte_eal_remote_launch(lcore_echo_fn, (void*) &q, id_lcore);
 	}
