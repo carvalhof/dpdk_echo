@@ -148,7 +148,7 @@ int app_parse_args(int argc, char **argv) {
 	char *prgname = argv[0];
 
 	argvopt = argv;
-	while ((opt = getopt(argc, argvopt, "n")) != EOF) {
+	while ((opt = getopt(argc, argvopt, "n:")) != EOF) {
 		switch (opt) {
 		// number of cores
 		case 'n':
@@ -182,6 +182,8 @@ int main(int argc, char **argv) {
 	if(ret < 0) {
 		rte_exit(EXIT_FAILURE, "Invalid arguments\n");
 	}
+
+	init_dpdk(nr_cores);
 
     uint32_t id_lcore = rte_lcore_id();	
 	for(uint16_t q = 0; q < nr_cores; q++) {
