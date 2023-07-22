@@ -139,6 +139,8 @@ static inline int init_dpdk(uint16_t nr_queues) {
 	if(retval < 0) {
 		return retval;
 	}
+
+	return 0;
 }
 
 // Parse the argument given in the command line of the application
