@@ -28,6 +28,7 @@
 #define MEMPOOL_CACHE_SIZE 		512
 #define PKTMBUF_POOL_ELEMENTS 	512*1024 - 1
 
+uint32_t portid = 1;
 uint16_t nr_cores = 1;
 
 // Convert string type into int type
@@ -56,7 +57,6 @@ static inline void swap_eth_ip_batch(struct rte_mbuf **pkts, uint16_t n) {
 }
 
 static int lcore_echo_fn(void *arg) {
-    uint32_t portid = 0;
     uint16_t qid = *((uint16_t*) arg);
     struct rte_mbuf *pkts[BURST_SIZE];
 
@@ -112,7 +112,6 @@ static inline int init_dpdk(uint16_t nr_queues) {
 	};
 
 	// configure the NIC
-    uint32_t portid = 1;
 	int retval = rte_eth_dev_configure(portid, nb_rx_queues, nb_tx_queues, &port_conf);
 	if(retval != 0) {
 		return retval;
