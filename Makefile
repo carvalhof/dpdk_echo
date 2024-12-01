@@ -5,7 +5,7 @@
 APP = dpdk_echo
 
 # all source are stored in SRCS-y
-SRCS-y := main.c
+SRCS-y := dpdk_echo.c
 
 # Build using pkg-config variables if possible
 ifneq ($(shell pkg-config --exists libdpdk && echo 0),0)

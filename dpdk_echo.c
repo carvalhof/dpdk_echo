@@ -23,12 +23,12 @@
 #include <rte_malloc.h>
 #include <rte_mempool.h>
 
-#define BURST_SIZE 32
-#define RING_ELEMENTS 512*1024
-#define MEMPOOL_CACHE_SIZE 512
-#define PKTMBUF_POOL_ELEMENTS 512*1024 - 1
+#define BURST_SIZE 				32
+#define RING_ELEMENTS 			512*1024
+#define MEMPOOL_CACHE_SIZE 		512
+#define PKTMBUF_POOL_ELEMENTS 	512*1024 - 1
 
-uint16_t nr_cores;
+uint16_t nr_cores = 1;
 
 // Convert string type into int type
 static uint16_t process_int_arg(const char *arg) {
@@ -37,7 +37,7 @@ static uint16_t process_int_arg(const char *arg) {
 	return strtoul(arg, &end, 10);
 }
 
-static inline void swap_ethernet_batch(struct rte_mbuf **pkts, uint16_t n) {
+static inline void swap_eth_4tuple_batch(struct rte_mbuf **pkts, uint16_t n) {
     for(uint16_t i = 0; i < n; i++) {
         struct rte_mbuf *pkt = pkts[i];
 
@@ -46,6 +46,12 @@ static inline void swap_ethernet_batch(struct rte_mbuf **pkts, uint16_t n) {
         tmp = eth_hdr->dst_addr;
         eth_hdr->dst_addr = eth_hdr->src_addr;
         eth_hdr->src_addr = tmp;
+
+		rte_be32_t tmp2;
+		struct rte_ipv4_hdr *ip_hdr = rte_pktmbuf_mtod_offset(pkt, struct rte_ipv4_hdr *, sizeof(struct rte_ether_hdr));
+        tmp2 = ip_hdr->dst_addr;
+        ip_hdr->dst_addr = ip_hdr->src_addr;
+        ip_hdr->src_addr = tmp2;
     }
 }
 
@@ -58,8 +64,8 @@ static int lcore_echo_fn(void *arg) {
         // retrieve the packets from the NIC
         uint16_t nb_rx = rte_eth_rx_burst(portid, qid, pkts, BURST_SIZE);
 
-        // swap the ethernet
-        swap_ethernet_batch(pkts, nb_rx);
+        // swap the ethernet and IP
+        swap_eth_ip_batch(pkts, nb_rx);
 
         // send the packets
         rte_eth_tx_burst(portid, qid, pkts, nb_rx);
@@ -83,8 +89,8 @@ static inline int init_dpdk(uint16_t nr_queues) {
     uint16_t nb_tx_queues = nr_queues;
 
     // configurable number of RX/TX ring descriptors
-	uint16_t nb_rxd = 1024;
-	uint16_t nb_txd = 1024;
+	uint16_t nb_rxd = 4096;
+	uint16_t nb_txd = 4096;
 
 	// get default port_conf
 	struct rte_eth_conf port_conf = {
@@ -93,15 +99,15 @@ static inline int init_dpdk(uint16_t nr_queues) {
 			.max_lro_pkt_size = RTE_ETHER_MAX_LEN,
 			.offloads = RTE_ETH_RX_OFFLOAD_CHECKSUM,
 		},
-		.rx_adv_conf = {
-			.rss_conf = {
-				.rss_key = NULL,
-				.rss_hf = RTE_ETH_RSS_TCP,
-			},
-		},
+		// .rx_adv_conf = {
+		// 	.rss_conf = {
+		// 		.rss_key = NULL,
+		// 		.rss_hf = RTE_ETH_RSS_TCP,
+		// 	},
+		// },
 		.txmode = {
 			.mq_mode = RTE_ETH_MQ_TX_NONE,
-			.offloads = RTE_ETH_TX_OFFLOAD_TCP_CKSUM|RTE_ETH_TX_OFFLOAD_IPV4_CKSUM|RTE_ETH_TX_OFFLOAD_MBUF_FAST_FREE,
+			// .offloads = RTE_ETH_TX_OFFLOAD_TCP_CKSUM|RTE_ETH_TX_OFFLOAD_IPV4_CKSUM|RTE_ETH_TX_OFFLOAD_MBUF_FAST_FREE,
 		},
 	};
 
