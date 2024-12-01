@@ -37,7 +37,7 @@ static uint16_t process_int_arg(const char *arg) {
 	return strtoul(arg, &end, 10);
 }
 
-static inline void swap_eth_4tuple_batch(struct rte_mbuf **pkts, uint16_t n) {
+static inline void swap_eth_ip_batch(struct rte_mbuf **pkts, uint16_t n) {
     for(uint16_t i = 0; i < n; i++) {
         struct rte_mbuf *pkt = pkts[i];
 
