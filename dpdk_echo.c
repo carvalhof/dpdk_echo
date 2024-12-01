@@ -112,7 +112,7 @@ static inline int init_dpdk(uint16_t nr_queues) {
 	};
 
 	// configure the NIC
-    uint32_t portid = 0;
+    uint32_t portid = 1;
 	int retval = rte_eth_dev_configure(portid, nb_rx_queues, nb_tx_queues, &port_conf);
 	if(retval != 0) {
 		return retval;
