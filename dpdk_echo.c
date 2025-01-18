@@ -28,7 +28,7 @@
 #define MEMPOOL_CACHE_SIZE 		512
 #define PKTMBUF_POOL_ELEMENTS 	512*1024 - 1
 
-uint32_t portid = 1;
+uint32_t portid = 0;
 uint16_t nr_cores = 1;
 
 // Convert string type into int type
