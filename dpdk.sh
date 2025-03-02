@@ -6,7 +6,7 @@ set -e
 # Install pre-requisites.
 sudo apt update
 sudo apt upgrade -y
-sudo apt install -y meson python3 python3-pip pkg-config libnuma-dev
+sudo apt install -y meson python3 python3-pip pkg-config libnuma-dev libibverbs-dev
 pip3 install pyelftools
 
 # Download sources.
